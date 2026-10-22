@@ -2,7 +2,7 @@
 
 No model weights are stored in this repository. `scripts/download_models.py` fetches each file below
 from its upstream source (pinned revision or release asset, checked by size and SHA-256) into `models/`.
-Each model keeps its own licence. The code in this repository is Apache-2.0 (see `LICENSE`).
+Each model keeps its own licence. The code in this repository is MIT (see `LICENSE`).
 
 | Model | Used for | Licence | Downloaded from |
 |---|---|---|---|

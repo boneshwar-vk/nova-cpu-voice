@@ -41,4 +41,4 @@ Apple M2 (4P + 4E cores), 8 GB RAM, macOS 26.2, 22 Oct 2026, shipped config (Gem
 | Turn detection | Smart Turn v3.2, one prediction | 67 ms | 83 ms | 20 |
 | Memory | server peak resident memory | 1565 MiB | | |
 
-Third-party model licences and attribution: [THIRD_PARTY_MODELS.md](THIRD_PARTY_MODELS.md). Code: Apache-2.0, see [LICENSE](LICENSE).
+Third-party model licences and attribution: [THIRD_PARTY_MODELS.md](THIRD_PARTY_MODELS.md). Code: MIT, see [LICENSE](LICENSE).
