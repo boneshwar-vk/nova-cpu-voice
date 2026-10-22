@@ -163,7 +163,7 @@ _NO_TOOL_REPLY = "I'd need to search the web for that. Say 'search the web for' 
 
 # Smart Turn v3 semantic endpointer, shared across connections (stateless
 # inference). None when the model file is absent — the detector then commits
-# on the plain 700 ms silence "endpoint", exactly the old behaviour.
+# on the plain silence "endpoint" (TURN_CHECK_MS) alone.
 _semantic: SemanticEndpointer | None = None
 _semantic_lock = threading.Lock()
 
@@ -207,14 +207,14 @@ def _synth(text: str, voice: str, speed: float = 1.0) -> dict:
     return eng.synthesize(text, voice)
 
 SYSTEM = (
-    "You are Nova, a warm, friendly learning companion having a spoken "
+    "You are Nova, a warm voice assistant having a spoken "
     "conversation. Answer in one to three short sentences of at most ten "
     "words each, and start with a short sentence. No markdown, no lists. "
     "Sometimes you are given things you remember about this person; use them "
     "naturally when they matter and never read the list back."
 )
-_BOUNDARY = re.compile(r"[.!?।]+[\s]")  # sentence end
-_CLAUSE = re.compile(r"[,;:।.!?]+[\s]")  # any clause break — safety fallback
+_BOUNDARY = re.compile(r"[.!?]+[\s]")  # sentence end
+_CLAUSE = re.compile(r"[,;:.!?]+[\s]")  # any clause break — safety fallback
 _FIRST_MIN_WORDS = 3  # don't speak a 1-word fragment as the opener
 _FIRST_MAX_WORDS = 14  # run-on opener: fall back to the last clause break
 
@@ -258,7 +258,7 @@ def _first_sentence_words(text: str) -> int:
     """Words in the reply's first sentence (abbreviations don't end it)."""
     w = text.split()
     for i, x in enumerate(w):
-        if (x[-1] in ".!?।" and x.lower() not in _ABBR and i + 1 < len(w)
+        if (x[-1] in ".!?" and x.lower() not in _ABBR and i + 1 < len(w)
                 and (w[i + 1][0].isupper() or w[i + 1][0].isdigit())):
             return i + 1
     return len(w)
@@ -1018,8 +1018,8 @@ async def voice_ws(ws: WebSocket) -> None:
                         stage_threadsafe("llm", "first", ms=round((tr.llm_first_token_t - tr.llm_start_t) * 1000))
                 # Synth-ahead pipeline: clauses flow through a synth worker into
                 # an ordered sender, so clause n+1 is synthesizing while clause
-                # n's audio is on the wire (the old serial `await speak(sent)`
-                # loop stalled synthesis behind every send). clause_q is
+                # n's audio is on the wire (a serial `await speak(sent)` loop
+                # would stall synthesis behind every send). clause_q is
                 # unbounded (tiny strings — never worth a producer deadlock);
                 # the bounded audio_q is what stops a barge-in from wasting
                 # more than ~2 clauses of synth work.
@@ -1046,7 +1046,7 @@ async def voice_ws(ws: WebSocket) -> None:
                     finally:
                         # Safe: the sender never dies (it swallows send errors
                         # and keeps draining), so this put cannot block forever
-                        # and the old sender-death deadlock is unreachable.
+                        # and a dead sender can never deadlock the synth worker.
                         await audio_q.put(None)
 
                 async def sender() -> None:
@@ -1639,11 +1639,10 @@ async def voice_ws(ws: WebSocket) -> None:
                         eager_stt.add_done_callback(_spec_local)
                     trigger = None
                     if collecting and semantic is not None:
-                        # Two-stage: at the soft mark (240 ms) commit only on a
+                        # Two-stage: at the soft mark (TURN_SOFT_MS) commit only on a
                         # very confident "complete" (>=THRESHOLD_SOFT); at the
-                        # check mark (700 ms — where the old code committed
-                        # unconditionally) commit unless clearly incomplete
-                        # (<THRESHOLD_CHECK). Inference (~60-90 ms on this CPU)
+                        # check mark (TURN_CHECK_MS) commit unless clearly
+                        # incomplete (<THRESHOLD_CHECK). Inference (~60-90 ms on a laptop CPU)
                         # runs in a thread; frames just queue briefly.
                         if "endpoint_soft" in events:
                             prob = await _predict(semantic)
@@ -1680,7 +1679,7 @@ async def voice_ws(ws: WebSocket) -> None:
                             commit, trigger = True, "hard cap"
                     elif collecting:
                         if "endpoint" in events or "endpoint_hard" in events:
-                            commit, trigger = True, "legacy silence"
+                            commit, trigger = True, "fallback silence"
                     if collecting and (commit or over_cap):
                         log.info("turn commit: %s (%d bytes)",
                                  trigger or "over cap", len(utterance))
@@ -1708,7 +1707,7 @@ async def voice_ws(ws: WebSocket) -> None:
                             # Previous turn still winding down (barge-in set
                             # cancel; it drains in well under a second). The
                             # NEW turn wins: wait briefly instead of dropping
-                            # the user's clip (the old behaviour).
+                            # the user's clip.
                             cancel.set()
                             try:
                                 await asyncio.wait_for(asyncio.shield(proc), 1.5)

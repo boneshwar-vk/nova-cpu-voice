@@ -6,7 +6,7 @@ Feeds PCM16 16 kHz mono frames and emits staged silence events plus a per-push
 
   endpoint_soft  — soft_silence_ms of silence: cheap moment to ask the semantic
                    classifier "is this phrase complete?" and commit early
-  endpoint       — end_silence_ms (the legacy commit point): semantic re-check,
+  endpoint       — end_silence_ms (the plain-silence commit point): semantic re-check,
                    or the commit itself when no classifier is available
   endpoint_hard  — max_silence_ms: unconditional commit (nobody talks this slow)
 
@@ -49,7 +49,7 @@ NOISE_GATE_MIN_SPEECHY = float(os.environ.get("NOISE_GATE_MIN_SPEECHY", "0.5"))
 # With a speech-like background, frames this far below the user's own level
 # (p90 of their speech frames this turn) are background, not the user.
 NOISE_USER_DROP_DB = float(os.environ.get("NOISE_USER_DROP_DB", "10"))
-# Smart Turn inference threads (bench/bench_frontend.py measures the predict time).
+# Smart Turn inference threads (bench/bench_stages.py measures the predict time).
 SMART_TURN_THREADS = int(os.environ.get("SMART_TURN_THREADS", "4"))
 
 
@@ -268,7 +268,7 @@ class SemanticEndpointer:
     utterance (last <=8 s), it returns P(the speaker is done talking) — no
     transcript needed, so it runs in parallel with eager STT.
 
-    Preprocessing mirrors the reference inference.py: last 8 s (zero-padded at
+    Preprocessing mirrors pipecat-ai/smart-turn inference.py: last 8 s (zero-padded at
     the START), zero-mean/unit-var normalize, Whisper log-mel (80 x 800) via
     whisper_mel.py (numpy, no torch/transformers dependency).
     """

@@ -102,16 +102,16 @@ def make_xlsx(path: pathlib.Path) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Orders"
-    ws.append(["order_id", "order_date", "channel", "customer", "city", "sku", "product", "size", "qty", "amount", "status", "courier", "awb"])
+    ws.append(["order_id", "order_date", "channel", "customer", "city", "sku", "product", "size", "qty", "amount", "status", "courier", "tracking"])
     chans = ["Shop", "Website", "Marketplace"]
     stats = ["shipped", "delivered", "returned"]
     for i in range(30):
         ws.append([f"SMT-{1020 + i}", dt.datetime(2026, 8 + i % 2, 1 + i), chans[i % 3], f"Customer{i}", ["Springfield", "Riverton", "Lakeside"][i % 3],
-                   f"SMT-FJ-0{i % 5}", ["Field jacket", "Shirt"][i % 2], ["S", "M", "L"][i % 3], 1 + i % 2, 1999 + 500 * (i % 3),
+                   f"SMT-FJ-0{i % 5}", ["Rain jacket", "Shirt"][i % 2], ["S", "M", "L"][i % 3], 1 + i % 2, 1999 + 500 * (i % 3),
                    stats[i % 3], "CourierA", f"DLV{900000 + i}"])
     inv = wb.create_sheet("Inventory")
     inv.append(["sku", "product", "size", "colour", "stock"])
-    stock = {("Field jacket", "S"): 5, ("Field jacket", "M"): 9, ("Field jacket", "L"): 4, ("Shirt", "S"): 12, ("Shirt", "M"): 7, ("Shirt", "L"): 2}
+    stock = {("Rain jacket", "S"): 5, ("Rain jacket", "M"): 9, ("Rain jacket", "L"): 4, ("Shirt", "S"): 12, ("Shirt", "M"): 7, ("Shirt", "L"): 2}
     for (p, s), n in stock.items():
         inv.append([f"SMT-{p[:2].upper()}-{s}", p, s, "navy", n])
     ret = wb.create_sheet("Returns")
@@ -250,12 +250,12 @@ def test_exact_order_id(lib, shop):
         p = r["passages"][0]
         assert "SMT-1042" in p["text"] and p["page_label"] == "Orders row 24", (q, p)
         assert r["gate"] and r["context"].startswith("[Orders FY26, Orders sheet, row 24]"), r["context"]
-    r = lib.search("which order shipped with AWB DLV900007", k=3)
+    r = lib.search("which order shipped with tracking number DLV900007", k=3)
     assert "SMT-1027" in r["passages"][0]["text"]
 
 
 def test_stock_question(lib, shop):
-    r = lib.search("how many Field jackets in size L are in stock?", k=3)
+    r = lib.search("how many Rain jackets in size L are in stock?", k=3)
     assert "stock: 4" in r["context"] or "L 4" in r["context"], r["context"]
     assert r["gate"]
 
@@ -322,7 +322,7 @@ def test_twins_skip_and_short_titles(tmp_path):
     assert r["gate"] and r["passages"][0]["page_label"] == "3", r
     assert rag_store.spoken_short_title({"short_title": "Smith 2024 (100 cases)"}, "x", "f") == "Smith 2024"
     assert rag_store.spoken_short_title({"short_title": "The Clever Crow and the Big Troubl"}, "The Clever Crow and the Big Trouble (Example Press)", "f") == "The Clever Crow and the Big Trouble"
-    assert rag_store.spoken_short_title({"short_title": "Reader prelims", "chapter": "Unit 1 picture reading and Ch 1 Colours"}, "t", "f") == "Reader Ch 1"
+    assert rag_store.spoken_short_title({"short_title": "Reader front matter", "chapter": "Unit 1 and Ch 1 Colours"}, "t", "f") == "Reader Ch 1"
 
 
 def test_reload_after_external_ingest(tmp_path):

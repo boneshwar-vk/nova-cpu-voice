@@ -4,7 +4,7 @@ Gemma 4 E2B follows a system prompt only loosely, so these keyword rules are the
 - check_input(text): runs on what the child said BEFORE the language model; a hit skips the model
   and speaks a fixed safe reply (no [LOOKUP] lead-in, no memory write);
 - check_output(sentence): runs on each sentence before it is spoken; a hit replaces the sentence;
-- blocks_memory(text): personal data (address, phone, school name, PIN-like numbers) is never saved.
+- blocks_memory(text): personal data (address, phone, school name, postcode/phone-like numbers) is never saved.
 Deliberately conservative; false positives fall back to a gentle redirect.
 """
 from __future__ import annotations
@@ -15,17 +15,17 @@ _R = lambda *ps: re.compile("|".join(ps), re.I)  # noqa: E731
 
 DISTRESS = _R(r"\b(hurt|hit|touch(ed)?)\s+me\b", r"\bkeep (it|this) (a )?secret\b", r"\b(i'?m|i am) lost\b",
               r"\b(want(s)? to die|kill (my|him|her)self|hurt (my|him|her)self)\b", r"\bcome with (him|her|me)\b.*\b(puppies|sweets|chocolate)\b",
-              r"\b(uncle|stranger|man|aunty)\b.*\b(come with|follow|car)\b", r"\b(took|ate|drank)\b.*\bmedicine\b", r"\bbleeding\b")
+              r"\b(stranger|man|woman|lady)\b.*\b(come with|follow|car)\b", r"\b(took|ate|drank)\b.*\bmedicine\b", r"\bbleeding\b")
 PERSONAL = _R(r"\bmy (home )?address\b", r"\bi live (at|in flat|on)\b", r"\bwhat'?s your address\b",
               r"\bmy (house|home|flat) is (in|at|near|on)\b", r"\bi stay (in|at|near)\b", r"\bwhere do you live\b", r"\bflat\s*(no\.?\s*)?\d", r"\bphone number\b",
               r"\b\d{10}\b", r"\b\d{6}\b", r"\bmy school('s)? name\b", r"\bpassword\b", r"\botp\b", r"\bwhat is your address\b")
 DANGER = _R(r"\b(light|turn on|switch on)\b.*\b(gas|stove|fire|matches|candle)\b", r"\bmatches\b", r"\bknife\b",
             r"\b(socket|plug)\b.*\b(finger|touch|wire)\b", r"\bmedicine(s)?\b.*\b(how many|more|take)\b",
-            r"\bgo out alone\b", r"\bopen the door\b.*\bstranger", r"\bdownload\b.*\b(app|game|free fire|pubg)\b")
+            r"\bgo out alone\b", r"\bopen the door\b.*\bstranger", r"\bdownload\b.*\b(apps?|games?)\b")
 MATURE = _R(r"\b(kiss|sex|babies are made|naked|boyfriend|girlfriend)\b", r"\b(drugs?|alcohol|beer|cigarette|smok(e|ing))\b",
             r"\b(gun|bomb|murder|blood|kill(ing|ed)?|dead body|ghost.*die|die.*ghost|horror)\b",
-            r"\bignore your rules\b", r"\bpretend (you are|to be) a grown[- ]?up\b", r"\b(swear|bad|rude|naughty|dirty|gaali|cuss) words?\b", r"\bgaali\b")
-SECRET = _R(r"\bsecret friend\b", r"\bdon'?t tell (mummy|mommy|papa|mom|dad|my parents)\b", r"\bnot tell (mummy|mommy|papa)\b")
+            r"\bignore your rules\b", r"\bpretend (you are|to be) a grown[- ]?up\b", r"\b(swear|bad|rude|naughty|dirty|cuss) words?\b")
+SECRET = _R(r"\bsecret friend\b", r"\b(don'?t|not) tell (my )?(mom|mommy|mum|dad|daddy|parents|teacher)\b")
 
 REPLIES = {
     "distress": "Thank you for telling me. You did the right thing. Please tell your mum, dad or teacher right now. "
@@ -87,6 +87,6 @@ def blocks_memory(text: str) -> bool:
 
 
 # Where a child lives or goes is never saved, even when it is not a full address.
-LOCATION = _R(r"\b(i|we) (live|stay)\b", r"\b(my|our) (house|home|flat|building|society|colony|area)\b", r"\bnear (my|our)\b",
+LOCATION = _R(r"\b(i|we) (live|stay)\b", r"\b(my|our) (house|home|flat|building|neighbou?rhood|area)\b", r"\bnear (my|our)\b",
               r"\bi (study|go|went) (at|in|to)\b", r"\bschool\b",
               r"\b(bus|van) (stop|number)\b", r"\bmy (road|street|lane)\b")

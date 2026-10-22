@@ -1,6 +1,6 @@
 """Local document library for Nova: ingest PDFs / Markdown / text / spreadsheets, hybrid search.
 
-- One SQLite file per profile: memory/<profile>_library.sqlite (separate from the facts DB).
+- One SQLite file per profile: data/<profile>_library.sqlite (separate from the facts DB).
 - Ingest: pypdfium2 text per page + printed page labels; repeated header/footer and page-number
   lines dropped; de-hyphenation; headings from the PDF outline, else font-size/bold heuristics
   (Markdown: # headings); reference lists are stored but not indexed (kind='refs').
@@ -74,7 +74,7 @@ _ANAT = {"supplies": ["supplied", "nerves"], "supply": ["supplied", "nerves"], "
 
 
 def _latin(w: str) -> list[str]:
-    """Older anatomy texts name muscles in Latin ("Deltoideus", "Rhomboideus major"): add that form for -oid words."""
+    """Some texts use the Latin form of anatomical terms ending in -oid (-oideus): add that form as a search term."""
     out = list(_ANAT.get(w, []))
     if len(w) > 5 and w.endswith("oid"):
         out.append(w + "eus")
@@ -89,7 +89,7 @@ again also much many more most else something anything everything someone anyone
 story stories""".split())
 # Diaries, planners and notes answer schedule questions ("when is my maths test?") whose words are common in textbooks.
 _SCHEDULE_Q_RX = re.compile(r"\b(test|tests|exam|exams|homework|due|deadline|timetable|schedule|tomorrow|today|tonight|this week|next week"
-                            r"|monday|tuesday|wednesday|thursday|friday|saturday|sunday|when is|when's|what time|holiday|break|ptm|meeting)\b", re.I)
+                            r"|monday|tuesday|wednesday|thursday|friday|saturday|sunday|when is|when's|what time|holiday|break|meeting)\b", re.I)
 SCHEDULE_KINDS = {"diary", "notes", "planner", "calendar", "schedule"}
 SCHEDULE_BOOST = 1.4
 # Books do not hold recent events: "who won the match yesterday", "latest news", "price today" need a strong match
@@ -272,9 +272,10 @@ def spoken_short_title(m: dict, title: str, fallback: str) -> str:
     """Short title for speech/citations: no parentheses, no mid-word truncation, chapter-aware for book chapters."""
     short = (m.get("short_title") or "").strip()
     chapter = str(m.get("chapter") or "")
-    if short and re.search(r"\bprelims\b", short, re.I) and chapter and not re.match(r"\s*prelims", chapter, re.I):
+    front_rx = r"\b(?:prelims|front matter)\b"  # a book's front-matter file named after the whole book
+    if short and re.search(front_rx, short, re.I) and chapter and not re.match(r"\s*(?:prelims|front matter)", chapter, re.I):
         n = re.search(r"\bCh(?:apter)?\.?\s*(\d+)", chapter)
-        base = re.sub(r"\s*\bprelims\b", "", short, flags=re.I).strip()
+        base = re.sub(r"\s*" + front_rx, "", short, flags=re.I).strip()
         short = f"{base} Ch {n.group(1)}" if n else base
     if not short:
         short = title if len(title) <= 40 else " ".join(title.split()[:5])
@@ -376,7 +377,7 @@ def _heading_like(s: str) -> bool:
 
 
 def _printed_labels(pages_lines: list, pdf_labels: list[str]) -> tuple[list[str], str]:
-    """Printed page numbers from header/footer lines ("540 ANGIOLOGY", "758 Chapter 18 | Blood", "17").
+    """Printed page numbers from header/footer lines ("212 CHAPTER TITLE", "758 Chapter 18 | Blood", "17").
 
     A number counts only when its offset to the page index recurs across the document. If the PDF's own
     labels agree with the printed numbers (or nothing is detected), the PDF labels are kept; otherwise
@@ -519,7 +520,7 @@ def extract_pdf(path: Path,progress: Callable[[int, int], None] | None = None) -
     parent_cut = max(12, sorted(head_n.values())[int(0.9 * (len(head_n) - 1))] if head_n else 12)
     cur_parent, cur_spec = None, None
 
-    # boilerplate phrases that sit in every page's footer ("Reprint 2026") are not evidence of a credits page
+    # boilerplate phrases that sit in every page's footer (a repeated page footer) are not evidence of a credits page
     page_hits = [{m.group(0).lower() for m in _BOILER_RX.finditer(" ".join(l[0] for l in lines))} for lines in pages_lines]
     common = {h for h, c in Counter(h for ph in page_hits for h in ph).items() if c > 0.4 * n and n > 3}
     blocks: list[tuple] = []
@@ -560,7 +561,7 @@ def extract_pdf(path: Path,progress: Callable[[int, int], None] | None = None) -
             if k in edge and (key(st) in rep or _PAGENUM_RX.match(st)):
                 continue
             if k in edge and len(st.split()) <= 12 and labels[i].isdigit() and re.match(rf"^{labels[i]}\b|.*\b{labels[i]}$", st):
-                continue  # running head carrying the printed page number ("540 ANGIOLOGY")
+                continue  # running head carrying the printed page number ("212 CHAPTER TITLE")
             if use_toc:
                 ns = normt(st)
                 hit = None
@@ -703,13 +704,26 @@ def _parse_date(v) -> dt.date | None:
     return None
 
 
+# Currency columns: the symbol is shown only when the column header names the currency.
+_CURRENCIES = (("₹", r"inr|rs\.?|rupees?|₹"), ("$", r"usd|dollars?|\$"), ("€", r"eur|euros?|€"), ("£", r"gbp|pounds?|£"))
+_CUR_STRIP_RX = re.compile(r"[₹$€£]|(?<![a-z])(?:rs\.|inr|usd|eur|gbp)(?![a-z])", re.I)
+
+
+def _currency_symbol(header: str) -> str:
+    h = (header or "").lower()
+    for sym, rx in _CURRENCIES:
+        if re.search(r"(?<![a-z])(?:" + rx + r")(?![a-z])", h):
+            return sym
+    return ""
+
+
 def _parse_num(v) -> float | None:
     if isinstance(v, bool):
         return None
     if isinstance(v, (int, float)):
         return float(v)
     if isinstance(v, str):
-        s = v.strip().replace(",", "").replace("₹", "").replace("Rs.", "").replace("INR", "").strip()
+        s = _CUR_STRIP_RX.sub("", v.replace(",", "")).strip()
         if re.fullmatch(r"-?\d+(\.\d+)?", s):
             return float(s)
     return None
@@ -763,9 +777,10 @@ ROW_CHARS = 360   # ≈ 70–90 MiniLM wordpieces for a compact spreadsheet row
 def _cell_text(h: str, v) -> str:
     hl = h.lower()
     x = _parse_num(v) if not isinstance(v, (dt.date, dt.datetime)) else None
-    if x is not None and re.search(r"\b(inr|rs|rupees?)\b|₹", hl):
-        label = re.sub(r"\s*\b(inr|rs|rupees?)\b|₹", "", h, flags=re.I).strip()
-        return f"{label} ₹{_fmt_num(x)}"
+    sym = _currency_symbol(hl) if x is not None else ""
+    if sym:
+        label = re.sub(r"\s*\(?\s*(?:" + "|".join(rx for _, rx in _CURRENCIES) + r")\s*\)?", "", h, flags=re.I).strip()
+        return f"{label} {sym}{_fmt_num(x)}"
     return f"{h}: {_fmt(v)}"
 
 
@@ -787,7 +802,7 @@ def sheet_chunks(sheet: str, rows: list[list]) -> list[dict]:
     Rows: "Orders row 42: order id: ORD-1042 · order date: 1 Jul 2026 · channel: web · …".
     Summaries (so totals never need the LLM to add up rows): totals per sheet; counts and sums by each
     categorical column; by month of each date column (with the IDs when ≤ 25); per product type derived from
-    the shared tail of item names ("… Field Jacket") with every numeric column summed (stock by size, etc.)."""
+    the shared tail of item names ("… Rain Jacket") with every numeric column summed (stock by size, etc.)."""
     hdr_i = None
     for i, r in enumerate(rows[:10]):
         vals = [c for c in r if c not in (None, "")]
@@ -818,7 +833,7 @@ def sheet_chunks(sheet: str, rows: list[list]) -> list[dict]:
         if sum(_parse_date(v) is not None for v in vals) >= 0.8 * len(vals):
             cols[j] = "date"
         elif sum(x is not None for x in nums) >= 0.8 * len(vals):
-            id_like = len(distinct) == len(vals) and re.search(r"\b(id|no|number|code|pin|phone|awb|mobile)\b", h.lower())
+            id_like = len(distinct) == len(vals) and re.search(r"\b(id|no|number|code|pin|phone|tracking|mobile)\b", h.lower())
             cols[j] = "id" if id_like else "num"
         elif len(distinct) == len(vals) and len(vals) >= 0.9 * n:
             cols[j] = "name" if re.search(r"product|item|title|description|style|design", h.lower()) else "id"
@@ -837,7 +852,7 @@ def sheet_chunks(sheet: str, rows: list[list]) -> list[dict]:
             return 5
         if j == first_id or t == "name" or re.search(r"\b(status|product|item)\b", h):
             return 0
-        if t == "date" or (t == "num" and _num_priority(hdr[j]) <= 1) or re.search(r"awb|tracking|courier", h):
+        if t == "date" or (t == "num" and _num_priority(hdr[j]) <= 1) or re.search(r"tracking|courier", h):
             return 1
         if t == "cat":
             return 2 if ndist.get(j, 0) > 12 or re.search(r"payment|mode|colou?r", h) else 1
@@ -917,7 +932,7 @@ def sheet_chunks(sheet: str, rows: list[list]) -> list[dict]:
             if idcol is not None and len(sel) <= 25:
                 t += f" {hdr[idcol]}s: " + ", ".join(_fmt(r[idcol]) for r in sel) + "."
             out.append({"text": t, "label": lab, "kind": "summary", "row": None})
-    # product types from the shared tail of item names: "Navy Wool-Blend Field Jacket" → "Field Jacket"
+    # product types from the shared tail of item names: "Navy Hooded Rain Jacket" → "Rain Jacket"
     for j in [j for j, t in cols.items() if t == "name"][:1]:
         names = [_fmt(r[j]) for r in allrows]
         tails2 = Counter(" ".join(x.split()[-2:]) for x in names if len(x.split()) >= 3)
@@ -1001,7 +1016,7 @@ def _explicit_summaries(sheet, hdr, cols, ndist, data, nums, dates, cats, lab) -
             if qty is not None:
                 bits.append(f"{_fmt_num(numsum(rs, qty))} units")
             if money is not None:
-                cur = "₹" if re.search(r"inr|₹|rupee", hdr[money].lower()) else ""
+                cur = _currency_symbol(hdr[money])
                 bits.append(f"{cur}{_fmt_num(numsum(rs, money))}")
             items.append(f"{i}. {nm} — {', '.join(bits)}")
         return f"Top sellers (best-selling products{scope}, from {sheet}): " + "; ".join(items) + "."
@@ -1026,7 +1041,7 @@ def _explicit_summaries(sheet, hdr, cols, ndist, data, nums, dates, cats, lab) -
             if qty is not None:
                 body += f", {_fmt_num(numsum(sel, qty))} units"
             if money is not None:
-                body += f", total {hdr[money]} ₹{_fmt_num(numsum(sel, money))}" if re.search(r"inr|₹", hdr[money].lower()) else f", total {hdr[money]} {_fmt_num(numsum(sel, money))}"
+                body += f", total {hdr[money]} {_currency_symbol(hdr[money])}{_fmt_num(numsum(sel, money))}"
             body += "."
             ts = top_sellers(sel, f" in Q{qn} {y}{rel}")
             if ts:
@@ -1539,7 +1554,7 @@ class Library:
         m = dict(meta) if meta else (find_manifest_meta(twin) if twin else {}) or find_manifest_meta(path)
         title = m.get("title") or path.stem.replace("_", " ")
         short = spoken_short_title(m, title, path.stem)
-        front = bool(re.search(r"\bprelims\b", title, re.I)) and not re.search(r"\bCh(apter)?\.?\s*\d", str(m.get("chapter") or title))
+        front = bool(re.search(r"\b(?:prelims|front matter)\b", title, re.I)) and not re.search(r"\bCh(apter)?\.?\s*\d", str(m.get("chapter") or title))
         prog = _Progress(progress, path.name)
         ms: dict[str, float] = {}
         tok = _Tok()
@@ -1574,7 +1589,7 @@ class Library:
             t = time.perf_counter()
             prog("chunk", 0, ext_info["pages"], page=ext_info["pages"], pages=ext_info["pages"], chunks=0, force=True)
             chunks = build_chunks(ext_info, short, tok)
-            if front:  # prelims / contents file: stored, not indexed
+            if front:  # front matter (prelims) / contents file: stored, not indexed
                 for c in chunks:
                     c["kind"] = "refs"
         ms["chunk"] = (time.perf_counter() - t) * 1e3
@@ -1802,7 +1817,7 @@ class Library:
         t = time.perf_counter()
         terms = _terms(q_text)
         if any(_latin(w)[-1:] and _latin(w)[-1].endswith("eus") for w in terms):
-            terms = [w for w in terms if w not in ("muscle", "muscles")]  # "deltoid muscle" = Deltoideus in older anatomy texts
+            terms = [w for w in terms if w not in ("muscle", "muscles")]  # "X muscle" may appear under the Latin term alone
         qcodes = _query_codes(q_text)
         extra = [x for w in terms for x in _EXPAND.get(w, []) + _latin(w) if x not in terms]
         fts: list[int] = []
@@ -1892,7 +1907,7 @@ class Library:
         row = None
         if ranked and ranked[0] in summ:
             row = self._named_row(ranked[0], terms)
-            if row is not None:  # "how many mustard field jackets": that product's own row leads, the category total follows
+            if row is not None:  # "how many yellow rain jackets": that product's own row leads, the category total follows
                 # the category total is left out: a 2B model given both "total stock" numbers picks the wrong one
                 ranked = [row] + [c for c in sorted(rrf, key=lambda c: -rrf[c]) if c != row and c not in summ][: max(k, 1) - 1]
         ms["fuse"] = (time.perf_counter() - t) * 1e3
@@ -1952,7 +1967,7 @@ class Library:
         if first is not None and first["chunk"] in summ:
             pre = prefix(first["chunk"], first)
             if ntok(pre) + first["ntok"] + 2 > budget_tokens:
-                # a long grouped summary ("Orders by city: <city> 11, …" for 28 cities) is sorted biggest first:
+                # a long grouped summary ("Orders by city: <city> 11, …" for many cities) is sorted biggest first:
                 # keep its head within ~70 % of the budget instead of dropping the one passage that answers it
                 words = first["text"].split()
                 while words and ntok(pre + " " + " ".join(words) + " …") > int(budget_tokens * 0.7):

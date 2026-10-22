@@ -50,7 +50,7 @@ def _piper_scales(d: Path, model: str) -> dict:
 
 TARGET_RMS_DBFS = -20.0   # speech level all voices are calibrated to (gated RMS)
 LIMIT_KNEE = 0.60         # soft limiter: linear below this, tanh above
-LIMIT_CEIL = 0.89         # never exceeds -1 dBFS (audio_check FAIL limit is -0.3 dBFS)
+LIMIT_CEIL = 0.89         # never exceeds -1 dBFS
 TAIL_MIN_MS = 120.0       # minimum silence at the end of every sentence, so sentences never run together
 CALIBRATION = ["Hello, it is nice to talk with you today.",
                "Your daughter's school play is on Friday at six in the evening.",

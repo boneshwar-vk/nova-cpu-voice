@@ -4,7 +4,7 @@
 Idempotent: a file whose size and sha256 already match is skipped; an archive is skipped when its
 extracted directory carries a `.complete` marker (delete models/<dir> to fetch it again). Standard library only.
 
-    python scripts/download_models.py             # core models (about 2.9 GB, most of it Gemma)
+    python scripts/download_models.py             # core models (about 2.8 GB, most of it Gemma)
     python scripts/download_models.py --matcha    # also the optional Matcha LJSpeech voice + Vocos vocoder
     python scripts/download_models.py --sef       # also the optional Piper "southern English female" voice
                                                   # (see THIRD_PARTY_MODELS.md for its licence caveat)

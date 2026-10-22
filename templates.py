@@ -18,7 +18,7 @@ TEMPLATES: dict[str, dict] = {
         "name": "Study from my books",
         "blurb": "Answers from your own textbooks with the page, then asks you a quick recall question.",
         "prompt": ("Template: study partner. Answer from their own books and notes with the page, explain simply, "
-                   "then sometimes ask one short recall question to check they remember. Help with viva-style "
+                   "then sometimes ask one short recall question to check they remember. Help with oral-exam "
                    "practice when asked. Be calm and encouraging."),
     },
     "kids": {

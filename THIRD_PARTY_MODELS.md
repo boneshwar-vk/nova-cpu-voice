@@ -6,7 +6,7 @@ Each model keeps its own licence. The code in this repository is MIT (see `LICEN
 
 | Model | Used for | Licence | Downloaded from |
 |---|---|---|---|
-| Gemma 4 E2B it, int4 `.litertlm` (LiteRT-LM community build) | language model | Apache-2.0 | `https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm` @ `b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1` |
+| Gemma 4 E2B it, `.litertlm` (LiteRT-LM community build; mixed 2/4/8-bit weights, mostly int4) | language model | Apache-2.0 (`https://ai.google.dev/gemma/docs/gemma_4_license`) | `https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm` @ `b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1` |
 | Silero VAD v6.2 (`silero_vad.onnx`) | voice activity detection | MIT | `https://github.com/snakers4/silero-vad` @ `be95df9152c0d7618fa1edfeb296fc3dae32376f` |
 | GTCRN (`gtcrn_simple.onnx`) | denoising on the VAD branch | MIT (upstream `Xiaobin-Rong/gtcrn`) | sherpa-onnx release `speech-enhancement-models` |
 | Smart Turn v3.2 CPU (`smart-turn-v3.2-cpu.onnx`) | end-of-turn detection | BSD-2-Clause | `https://huggingface.co/pipecat-ai/smart-turn-v3` @ `f766f81d3cfdf7737ac64aad813d91bbfd56bf93` |
@@ -19,7 +19,9 @@ Each model keeps its own licence. The code in this repository is MIT (see `LICEN
 
 The Piper and Matcha archives also contain `espeak-ng-data`, the phoneme data of eSpeak NG
 (`https://github.com/espeak-ng/espeak-ng`), which is GPL-3.0-or-later. sherpa-onnx uses it to turn
-text into phonemes for these voices.
+text into phonemes for these voices. The sherpa-onnx binary wheels also compile in espeak-ng library code
+(GPL-3.0-or-later). This repository only imports sherpa-onnx from PyPI and does not redistribute it; a bundled
+build that ships sherpa-onnx (for example a packaged app) takes on the GPL-3.0 terms.
 
 ## Default voice
 
@@ -43,6 +45,8 @@ If you redistribute this voice or audio made with it, keep this attribution and 
 The `rhasspy/piper-voices` repository is tagged MIT, but the voice's model card says it was fine-tuned from
 `en_US-ryan-low`, whose model card lists its training data (RyanSpeech) as CC BY-NC-SA 4.0. Because of this
 non-commercial lineage, commercial use of "sef" is unclear; check it yourself before any commercial use.
+The voice is a derived work of SLR83: Piper trained it on that data, and k2-fsa converted it to ONNX for
+sherpa-onnx. The dataset is provided "as is", without warranties; see section 5 of the licence.
 
 ## Bundled web fonts
 
@@ -52,6 +56,19 @@ non-commercial lineage, commercial use of "sef" is unclear; check it yourself be
 ## Runtime libraries
 
 Installed from PyPI by `requirements.txt`, each under its own licence: LiteRT-LM (`litert-lm-api`,
-Apache-2.0), sherpa-onnx (Apache-2.0), ONNX Runtime (MIT), FastAPI (MIT), Uvicorn (BSD-3-Clause), NumPy and
-SciPy (BSD-3-Clause), soundfile (BSD-3-Clause), tokenizers (Apache-2.0), pypdfium2 (Apache-2.0 or
-BSD-3-Clause), openpyxl (MIT).
+Apache-2.0), sherpa-onnx (Apache-2.0), ONNX Runtime (MIT), FastAPI (MIT), Starlette (BSD-3-Clause),
+Pydantic (MIT), Uvicorn (BSD-3-Clause), websockets (BSD-3-Clause), NumPy and SciPy (BSD-3-Clause), soundfile
+(BSD-3-Clause; its wheels bundle libsndfile, LGPL-2.1), tokenizers (Apache-2.0), pypdfium2 (Apache-2.0 or
+BSD-3-Clause; PDFium binary under its own BSD-style licences), openpyxl (MIT). Development only: pytest (MIT),
+reportlab (BSD).
+
+## Online data sources (optional tools)
+
+With tools on (the default) and an internet connection, some requests use these services. Each has its own
+terms; check them before any commercial use, or set `TOOLS=0`.
+
+- Open-Meteo (weather): data CC BY 4.0, "Weather data by Open-Meteo.com"; the free API is for non-commercial use.
+- Wikipedia (summaries): text CC BY-SA 4.0.
+- DuckDuckGo Instant Answers (web look-ups).
+- Google News RSS (headlines).
+- Frankfurter (exchange rates).

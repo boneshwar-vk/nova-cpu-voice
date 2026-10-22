@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 CACHE_ROOT = HERE / "models" / ".cache"
 
 DEFAULT_SYSTEM = (
-    "You are Nova, a warm learning companion talking aloud. Start with a very short sentence, two to five words. "
+    "You are Nova, a warm voice assistant talking aloud. Start with a very short sentence, two to five words. "
     "Then one or two short sentences; if the question needs depth, explain clearly in up to six short sentences, "
     "then ask \"Want more detail?\" No lists.")
 
