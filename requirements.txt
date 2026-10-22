@@ -1,0 +1,15 @@
+# Runtime (CPU only). Tested with Python 3.11 on macOS arm64; wheels exist for Linux x86_64/aarch64 too.
+litert-lm-api==0.17.1        # LiteRT-LM runtime (Gemma 4 E2B .litertlm), Apache-2.0
+sherpa-onnx==1.13.4          # Moonshine STT, GTCRN denoiser, Piper/Matcha TTS, Apache-2.0
+onnxruntime==1.27.0          # Silero VAD, Smart Turn, MiniLM embeddings, MIT
+numpy==1.26.4
+scipy==1.17.1                # echo correlation for barge-in
+soundfile==0.14.0
+tokenizers==0.23.1           # MiniLM tokenizer (memory / library)
+fastapi==0.138.0
+starlette==1.9.0
+pydantic==2.13.4
+uvicorn[standard]==0.49.0
+websockets==16.0             # bench/e2e_bench.py client (also used by uvicorn)
+pypdfium2==5.14.0            # library ingest: PDF text
+openpyxl==3.1.5              # library ingest: .xlsx

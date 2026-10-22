@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Nova</title>
+<link rel="stylesheet" href="nova.css?v=12">
+</head>
+<body>
+<section id="start" aria-labelledby="start-title">
+  <div class="start-card">
+    <p class="brand">Nova</p>
+    <h1 id="start-title">Talk to Nova</h1>
+    <p class="lead">A voice assistant that runs entirely on this computer's CPU. Memory and history stay on this computer.</p>
+    <p class="label">How Nova helps</p>
+    <div class="voices tmpls" id="templates" role="group" aria-label="Choose a use-case template"></div>
+    <p class="tmpl-blurb" id="tmpl-blurb"></p>
+    <p class="label">Nova's voice</p>
+    <div class="voices" id="voices" role="group" aria-label="Choose Nova's voice"></div>
+    <p class="hw" id="hw"></p>
+    <div><button class="cta" id="begin">Start conversation</button></div>
+    <p class="foot"><span class="dot" id="start-dot"></span><span id="start-net">Checking network…</span><span>·</span><span id="start-where">Everything runs on this computer's CPU</span></p>
+  </div>
+</section>
+
+<section id="call" class="hidden" aria-label="Conversation with Nova">
+  <header class="topbar">
+    <span class="nova">Nova</span>
+    <span class="chip" id="net-chip"><span class="dot" id="net-dot"></span><span id="net-text">…</span></span>
+    <span class="spacer"></span>
+    <span class="chip btn" id="who" title="Back to the start screen (Esc)">Settings</span>
+    <span class="chip kid hidden" id="kid-chip">Child-safe mode</span>
+    <span class="chip hidden" id="timer-chip" title="Timer running"></span>
+    <span class="chip hidden" id="tmpl-chip" title="Use-case template (change it on the start screen)"></span>
+    <span class="chip" id="voice-chip">…</span>
+    <span class="chip" id="dev-chip" title="Everything runs on the CPU">CPU</span>
+    <span class="chip btn" id="mic-chip" title="Mute or unmute (Space)">Mic on</span>
+  </header>
+  <main class="stage">
+    <div class="orb" id="orb" aria-hidden="true"><div class="halo"></div><div class="ring"></div><div class="core"></div></div>
+    <div class="state" id="state" aria-live="polite">Ready</div>
+    <ol class="steps" id="steps" aria-label="What Nova is doing now">
+      <li data-k="hear"><span class="sn">Hear</span><span class="sv"></span></li>
+      <li data-k="turn"><span class="sn">Turn end</span><span class="sv"></span></li>
+      <li data-k="stt"><span class="sn">Transcribe</span><span class="sv"></span></li>
+      <li data-k="memory"><span class="sn">Memory</span><span class="sv"></span></li>
+      <li data-k="rag"><span class="sn">Library</span><span class="sv"></span></li>
+      <li data-k="tool"><span class="sn">Tool</span><span class="sv"></span></li>
+      <li data-k="llm"><span class="sn">Think</span><span class="sv"></span></li>
+      <li data-k="tts"><span class="sn">Speak</span><span class="sv"></span></li>
+    </ol>
+    <div class="activity" id="activity" aria-live="polite"></div>
+    <div class="you" id="you"></div>
+    <p class="said" id="said" aria-live="polite"></p>
+    <div class="mem-chips" id="chips"></div>
+    <div class="source hidden" id="source" aria-live="polite"></div>
+    <div class="source toolcard hidden" id="toolcard" aria-live="polite"></div>
+  </main>
+  <footer class="bottombar">
+    <span class="lat" id="lat">Say something to begin.</span>
+    <span class="spacer"></span>
+    <button class="linkbtn" id="lib-btn" aria-expanded="false" aria-controls="library">Library</button>
+    <button class="linkbtn" id="his-btn" aria-expanded="false" aria-controls="history">History</button>
+    <button class="linkbtn" id="mem-btn" aria-expanded="false" aria-controls="memory">Memory</button>
+    <button class="linkbtn" id="det-btn" aria-expanded="false" aria-controls="details">Details</button>
+    <button class="linkbtn" id="help-btn" aria-label="Keyboard shortcuts">?</button>
+  </footer>
+</section>
+
+<aside id="memory" class="drawer" aria-label="Memory">
+  <div class="dhead"><h2 id="mem-title">Memory</h2><button class="close" id="mem-close" aria-label="Close memory">×</button></div>
+  <ul class="mlist" id="mlist"></ul>
+  <div class="dfoot"><span id="mem-file"></span><span class="spacer"></span><button class="linkbtn" id="mem-reset">Forget everything</button></div>
+</aside>
+
+<aside id="library" class="drawer" aria-label="Library">
+  <div class="dhead"><h2 id="lib-title">Library</h2><button class="close" id="lib-close" aria-label="Close library">×</button></div>
+  <ul class="mlist" id="lib-list"></ul>
+  <div class="dfoot"><span id="lib-file"></span></div>
+</aside>
+
+<aside id="history" class="drawer" aria-label="Conversation history">
+  <div class="dhead"><h2 id="his-title">History</h2><button class="close" id="his-close" aria-label="Close history">×</button></div>
+  <ul class="mlist" id="his-list"></ul>
+  <div class="dfoot"><span id="his-file"></span><span class="spacer"></span><button class="linkbtn" id="his-clear">Clear history</button></div>
+</aside>
+
+<aside id="details" class="drawer" aria-label="Pipeline details">
+  <div class="pipe" id="pipe"></div>
+  <div class="tl" id="tl"></div>
+  <div class="legend">Last turn from the moment you stopped speaking: wait for turn end · speech to text · Gemma to first sentence · first sentence spoken</div>
+  <table><thead><tr><th>#</th><th>Turn end</th><th>Wait</th><th>Speech to text</th><th>Memory</th><th>Gemma first word</th><th>First sentence</th><th>Voice</th><th>Reply heard after</th></tr></thead><tbody id="turns"></tbody></table>
+</aside>
+
+<div id="help" class="hidden" role="dialog" aria-label="Keyboard shortcuts">
+  <div><kbd>Space</kbd> mute or unmute the mic</div>
+  <div><kbd>L</kbd> library · <kbd>H</kbd> history · <kbd>M</kbd> memory · <kbd>D</kbd> details</div>
+  <div><kbd>R</kbd> clear Nova's memory of you</div>
+  <div>Tools: say "set a timer for 5 minutes", "remind me to…", "what's the weather in Paris", "convert 100 dollars to euros"</div>
+  <div><kbd>Esc</kbd> close a drawer, or back to the start screen</div>
+</div>
+<div id="toast" class="hidden" role="status"></div>
+<script src="nova.js?v=14"></script>
+</body>
+</html>
