@@ -2,6 +2,11 @@
 
 Nova, a voice assistant that runs entirely on the CPU and works offline (Silero VAD + GTCRN → Smart Turn v3.2 → Moonshine v2 → Gemma 4 E2B on LiteRT-LM → Piper TTS, with a web page). A few optional tools (weather, news, web look-ups) use the internet when available; `TOOLS=0` turns all tools off.
 
+<p align="center">
+  <a href="demo/nova-backprop-demo.mp4"><img src="demo/preview.gif" width="640" alt="Two Nova voice bots talking: Sam asks what backpropagation is, Nova answers"></a>
+</p>
+<p align="center"><a href="demo/nova-backprop-demo.mp4">▶ Watch the 1-minute demo with sound</a> · <a href="demo/transcript.md">Transcript</a></p>
+
 ## Install
 
 Needs macOS 14+ on Apple silicon (tested) or Linux x86_64/aarch64 (should work, untested), Python 3.11, 8 GB of RAM and about 4.5 GB of free disk. Windows and Intel Macs are not supported.

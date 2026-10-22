@@ -72,3 +72,7 @@ terms; check them before any commercial use, or set `TOOLS=0`.
 - DuckDuckGo Instant Answers (web look-ups).
 - Google News RSS (headlines).
 - Frankfurter (exchange rates).
+
+## Demo video
+
+`demo/nova-backprop-demo.mp4` uses the Piper `en_US-ljspeech-medium` voice (Nova) and the Piper `en_US-norman-medium` voice (Sam, LibriVox data, public domain, trained from scratch: `https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/norman/medium`). The font is Inter (OFL 1.1).
